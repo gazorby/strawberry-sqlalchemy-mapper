@@ -1,3 +1,9 @@
+This fork is a heavily modified version of [strawberry-sqlalchemy-mapper]() with the following additions/changes:
+
+- Implements relay pagination (using [this sqlakeyset fork](https://github.com/Apakottur/sqlakeyset))
+- Fully async
+- Uses SQLAlchmy 2.0 style
+
 # strawberry-sqlalchemy-mapper
 
 
