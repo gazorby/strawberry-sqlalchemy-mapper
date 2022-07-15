@@ -515,14 +515,12 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                         return []
                     else:
                         return None
-		if isinstance(info.context, dict):
+                if isinstance(info.context, dict):
                     loader = info.context["sqlalchemy_loader"]
                 else:
                     loader = info.context.sqlalchemy_loader
-                related_objects = (
-                    await loader
-                    .loader_for(relationship)
-                    .load((page_input, relationship_key))
+                related_objects = await loader.loader_for(relationship).load(
+                    (page_input, relationship_key)
                 )
             return related_objects
 
