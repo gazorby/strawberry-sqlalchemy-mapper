@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Any, Callable, Type
+from typing import Any, Callable, Type, Union
 
 import pydantic
 from pydantic import validate_model
@@ -99,7 +97,7 @@ class PydanticMapper(StrawberrySQLAlchemyMapper):
 
     def update_input(
         self, model: Type[BaseModelType]
-    ) -> Callable[[type], Type["PydanticMapper.input_bases"]]:
+    ) -> Callable[[type], Type[Union[pydantic.BaseModel, PostponedValidationMixin]]]:
         super_update = super().update_input(model)
         fn = self._to_pydantic_model
 
@@ -111,7 +109,7 @@ class PydanticMapper(StrawberrySQLAlchemyMapper):
 
     def create_input(
         self, model: Type[BaseModelType]
-    ) -> Callable[[type], Type["PydanticMapper.input_bases"]]:
+    ) -> Callable[[type], Type[Union[pydantic.BaseModel, PostponedValidationMixin]]]:
         super_create = super().create_input(model)
         fn = self._to_pydantic_model
 
