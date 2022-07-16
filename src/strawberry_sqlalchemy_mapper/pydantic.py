@@ -46,46 +46,45 @@ class PostponedValidationMixin:
         object.__setattr__(self, "__fields_set__", fields_set)
 
 
-class PydanticMapper(StrawberrySQLAlchemyMapper):
-    """Convert strawberry input types to pydantic model."""
+class PydanticSQLAMapper(StrawberrySQLAlchemyMapper):
+    """Convert generated strawberry input types to pydantic model."""
 
     def _to_pydantic_model(
         self,
         pyd_model: Type[pydantic.BaseModel],
-        input_cls: Any,
+        type_: Any,
         sqla_model: Type[BaseModelType],
     ) -> Type[pydantic.BaseModel]:
         """Create a pydantic model from a strawberry input type."""
 
-        fields_def = {
-            f_name: (f_type, getattr(input_cls, f_name, ...))
-            for f_name, f_type in input_cls.__annotations__.items()
+        fields_definition = {
+            f_name: (f_type, getattr(type_, f_name, ...))
+            for f_name, f_type in type_.__annotations__.items()
         }
 
         pyd_model = pydantic.create_model(
             pyd_model.__name__,
             __base__=(*self.input_bases, PostponedValidationMixin, pyd_model),
             __module__=pyd_model.__module__,
-            **fields_def,
+            **fields_definition,
         )
 
-        pyd_model._type_definition = input_cls._type_definition
-        pyd_model._model = sqla_model
+        pyd_model._type_definition = type_._type_definition
         setattr(
             pyd_model,
             _GENERATED_FIELD_KEYS_KEY,
-            getattr(input_cls, _GENERATED_FIELD_KEYS_KEY),
+            getattr(type_, _GENERATED_FIELD_KEYS_KEY),
         )
 
         # Update mapping
-        self.input_types[input_cls.__name__] = pyd_model
-        sqla_model = self.input_model_map.pop(input_cls)
+        self.input_types[type_.__name__] = pyd_model
+        sqla_model = self.input_model_map.pop(type_)
         self.input_model_map[pyd_model] = sqla_model
 
         return pyd_model
 
     @classmethod
-    def _copy_input_cls(cls, input_class: Any) -> type:
+    def _copy_type(cls, input_class: Any) -> type:
         return type(
             input_class.__name__,
             (),
@@ -95,29 +94,37 @@ class PydanticMapper(StrawberrySQLAlchemyMapper):
             },
         )
 
+    def _wrapper(
+        self, fn_name: str, model: Type[BaseModelType], *args, **kwargs
+    ) -> Callable[[Any], Any]:
+        """Wrap `fn_name` decorator to convert generated type to a pydantic model."""
+        super_fn = getattr(super(), fn_name)(model, *args, **kwargs)
+        to_pydantic_model = self._to_pydantic_model
+
+        def convert(type_: Any):
+            # It's necessary to create a new type to
+            # to prevent unwanted mutations from strawberry on the pydantic model
+            type_copy = PydanticSQLAMapper._copy_type(type_)
+            return to_pydantic_model(type_, super_fn(type_copy), model)
+
+        return convert
+
+    def type(
+        self, model: Type[BaseModelType], make_interface=False
+    ) -> Callable[
+        [Type[object]], Type[Union[pydantic.BaseModel, PostponedValidationMixin]]
+    ]:
+        return self._wrapper("type", model, make_interface=make_interface)
+
     def update_input(
         self, model: Type[BaseModelType]
     ) -> Callable[[type], Type[Union[pydantic.BaseModel, PostponedValidationMixin]]]:
-        super_update = super().update_input(model)
-        fn = self._to_pydantic_model
-
-        def convert(type_: Any):
-            type_copy = PydanticMapper._copy_input_cls(type_)
-            return fn(type_, super_update(type_copy), model)
-
-        return convert
+        return self._wrapper("update_input", model)
 
     def create_input(
         self, model: Type[BaseModelType]
     ) -> Callable[[type], Type[Union[pydantic.BaseModel, PostponedValidationMixin]]]:
-        super_create = super().create_input(model)
-        fn = self._to_pydantic_model
-
-        def convert(type_: Any):
-            type_copy = PydanticMapper._copy_input_cls(type_)
-            return fn(type_, super_create(type_copy), model)
-
-        return convert
+        return self._wrapper("create_input", model)
 
     def finalize(self) -> None:
         # Update model forward refs
