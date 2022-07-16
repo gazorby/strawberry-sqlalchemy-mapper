@@ -180,7 +180,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
         extra_sqlalchemy_type_to_strawberry_type_map: Optional[
             Mapping[Type[TypeEngine], Type[Any]]
         ] = None,
-        input_base=None,
+        input_bases=None,
     ) -> None:
         if TYPE_CHECKING:
             self.model_to_create_input_name: Callable[[Type[BaseModelType]], str]
@@ -215,7 +215,13 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
         self.input_model_map = {}
         self._related_type_models = set()
         self._related_interface_models = set()
-        self.input_base = (input_base,) if input_base is not None else ()
+
+        if not isinstance(input_bases, tuple):
+            self.input_bases = (input_bases,)
+        elif input_bases is not None:
+            self.input_bases = input_bases
+        else:
+            self.input_bases = ()
 
     @staticmethod
     def _default_model_to_type_name(model: Type[BaseModelType]) -> str:
