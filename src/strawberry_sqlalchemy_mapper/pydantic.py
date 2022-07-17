@@ -154,16 +154,16 @@ class PydanticSQLAMapper(StrawberrySQLAlchemyMapper):
         return convert
 
     def type(
-        self, model: Type[BaseModelType], **kwargs
+        self, model: Type[BaseModelType], make_interface=False
     ) -> Callable[
         [Type[object]], Type[Union[pydantic.BaseModel, PostponedValidationMixin]]
     ]:
-        return self._wrapper("type", model, **kwargs)
+        return self._wrapper("type", model, make_interface=make_interface)
 
     def input(
-        self, model: Type[BaseModelType], **kwargs
+        self, model: Type[BaseModelType], optional=False
     ) -> Callable[[type], Type[Union[pydantic.BaseModel, PostponedValidationMixin]]]:
-        return self._wrapper("input", model, **kwargs)
+        return self._wrapper("input", model, optional=optional)
 
     def finalize(self) -> None:
         # Update model forward refs
