@@ -684,7 +684,6 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
             id = Column(UUID, primary_key=True)
             name = Column(String, nullable=False)
 
-
         # in another file
         strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
         @strawberry_sqlalchemy_mapper.type(models.Employee)
@@ -810,7 +809,15 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
 
         return convert
 
-    def _input(self, model: Type[BaseModelType], update: bool = False):
+    def input(self, model: Type[BaseModelType], optional: bool = False):
+        """
+        Same as `type` decorator but generate a strawberry input type instead.
+
+        Args:
+            - optional: Make all fields optional, except ones mapped to primary key.
+               Useful when you want to create input types for update operations.
+        """
+
         def convert(type_: Any):
             old_annotations = getattr(type_, "__annotations__", {})
             type_.__annotations__ = {}
@@ -821,19 +828,19 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
             pk_field = self._get_pk_field(model)
 
             # Exclude primary keys from create input
-            if not update:
+            if not optional:
                 excluded_keys = set(excluded_keys).union(pk_field)
 
             type_name = self.model_to_type_name(model)
 
-            if update:
+            if optional:
                 input_name = self.model_to_update_input_name(type_name)
             else:
                 input_name = self.model_to_create_input_name(type_name)
 
             type_.__name__ = input_name
 
-            if update:
+            if optional:
                 # Update input
                 self._handle_columns(
                     mapper,
@@ -866,7 +873,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                     continue
 
                 relationship_input = self._convert_relationship_to_input_type(
-                    relationship, update
+                    relationship, optional
                 )
                 if key not in excluded_keys:
                     self._add_annotation(
@@ -881,13 +888,13 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                             key,
                             strawberry.field(default_factory=list),
                         )
-                    elif update:
+                    elif optional:
                         setattr(type_, key, None)
 
             type_.__annotations__.update(old_annotations)
 
             # Cast pk field to strawberry ID
-            if update:
+            if optional:
                 type_.__annotations__.update({pk: strawberry.ID for pk in pk_field})
 
             mapped_input = strawberry.input(type_)
@@ -904,12 +911,6 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
             return mapped_input
 
         return convert
-
-    def create_input(self, model: Type[BaseModelType]) -> Callable[[type], type]:
-        return self._input(model)
-
-    def update_input(self, model: Type[BaseModelType]) -> Callable[[type], type]:
-        return self._input(model, update=True)
 
     def interface(self, model: Type[BaseModelType]) -> Callable[[Type[object]], Any]:
         """

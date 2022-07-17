@@ -16,11 +16,11 @@ def test_basic():
         model_to_type_name=lambda name: f"{name.__name__}Type",
     )
 
-    @gql_mapper.create_input(Employee)
+    @gql_mapper.input(Employee)
     class EmployeeCreate:
         pass
 
-    @gql_mapper_pydantic.create_input(Employee)
+    @gql_mapper_pydantic.input(Employee)
     class EmployeeCreateModel(BaseModel):
         pass
 
@@ -89,7 +89,7 @@ def test_postponed_evaluation():
         postponed_validation=True,
     )
 
-    @gql_mapper.create_input(Employee)
+    @gql_mapper.input(Employee)
     class EmployeeCreate(BaseModel):
         pass
 

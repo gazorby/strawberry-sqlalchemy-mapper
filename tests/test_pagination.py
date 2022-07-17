@@ -57,12 +57,12 @@ class ParentType(Node, ConnectionMixin):
     id: strawberry.ID
 
 
-@gql_mapper.create_input(Parent)
+@gql_mapper.input(Parent)
 class ParentCreate:
     __exclude__ = ["id"]
 
 
-@gql_mapper.update_input(Parent)
+@gql_mapper.input(Parent, optional=True)
 class ParentUpdate:
     pass
 
@@ -72,12 +72,12 @@ class ChildType(Node):
     id: strawberry.ID
 
 
-@gql_mapper.create_input(Child)
+@gql_mapper.input(Child)
 class ChildCreate:
     __exclude__ = ["id"]
 
 
-@gql_mapper.update_input(Child)
+@gql_mapper.input(Child, optional=True)
 class ChildUpdate:
     pass
 

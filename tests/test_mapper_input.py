@@ -14,7 +14,7 @@ def test_basic_create():
     class EmployeeType:
         id: strawberry.ID
 
-    @gql_mapper.create_input(Employee)
+    @gql_mapper.input(Employee)
     class EmployeeCreate:
         pass
 
@@ -68,7 +68,7 @@ def test_basic_update():
     class EmployeeType:
         id: strawberry.ID
 
-    @gql_mapper.update_input(Employee)
+    @gql_mapper.input(Employee, optional=True)
     class EmployeeUpdate:
         pass
 
@@ -131,7 +131,7 @@ def test_list_input():
     class DepartmentType:
         id: strawberry.ID
 
-        @gql_mapper.create_input(Department)
+        @gql_mapper.input(Department)
         class Create:
             pass
 
@@ -139,7 +139,7 @@ def test_list_input():
     class EmployeeType:
         id: strawberry.ID
 
-        @gql_mapper.create_input(Employee)
+        @gql_mapper.input(Employee)
         class Create:
             __exclude__ = ["department_id", "department"]
 
@@ -191,7 +191,7 @@ def test_create_exclude():
         id: strawberry.ID
         __exclude__ = ["department", "department_id"]
 
-    @gql_mapper.create_input(Employee)
+    @gql_mapper.input(Employee)
     class EmployeeCreate:
         __exclude__ = ["department", "department_id"]
 
@@ -241,7 +241,7 @@ type Query {
     assert result.data == {"createEmployee": {"id": "1", "name": "foo"}}
 
 
-def test_update_exclude():
+def test_optional_exclude():
     gql_mapper = StrawberrySQLAlchemyMapper(
         model_to_type_name=lambda name: f"{name.__name__}Type",
     )
@@ -253,7 +253,7 @@ def test_update_exclude():
 
         __exclude__ = ["children"]
 
-    @gql_mapper.update_input(Employee)
+    @gql_mapper.input(Employee, optional=True)
     class EmployeeUpdate:
         __exclude__ = ["children"]
 
