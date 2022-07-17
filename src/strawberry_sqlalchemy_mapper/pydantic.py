@@ -1,7 +1,10 @@
-from typing import Any, Callable, Type, Union
+import dataclasses
+from typing import Any, Callable, Dict, Optional, Type, Union
 
 import pydantic
 from pydantic import validate_model
+from pydantic.fields import Field, FieldInfo, Required, Undefined
+from pydantic.typing import NoArgAnyCallable
 
 from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyMapper
 from strawberry_sqlalchemy_mapper.mapper import _GENERATED_FIELD_KEYS_KEY, BaseModelType
@@ -49,6 +52,34 @@ class PostponedValidationMixin:
 class PydanticSQLAMapper(StrawberrySQLAlchemyMapper):
     """Convert generated strawberry input types to pydantic model."""
 
+    def _field_definitions(self, type_):
+        field_definitions: Dict[str, Any] = {}
+
+        for field in dataclasses.fields(type_):
+            default: Any = Undefined
+            default_factory: Optional["NoArgAnyCallable"] = None
+            field_info: FieldInfo
+
+            if field.default is not dataclasses.MISSING:
+                default = field.default
+            elif field.default_factory is not dataclasses.MISSING:
+                default_factory = field.default_factory
+            else:
+                default = Required
+
+            if isinstance(default, FieldInfo):
+                field_info = default
+            else:
+                field_info = Field(
+                    default=default, default_factory=default_factory, **field.metadata
+                )
+
+            field_definitions[field.name] = (
+                type_.__annotations__[field.name],
+                field_info,
+            )
+        return field_definitions
+
     def _to_pydantic_model(
         self,
         pyd_model: Type[pydantic.BaseModel],
@@ -57,16 +88,11 @@ class PydanticSQLAMapper(StrawberrySQLAlchemyMapper):
     ) -> Type[pydantic.BaseModel]:
         """Create a pydantic model from a strawberry input type."""
 
-        fields_definition = {
-            f_name: (f_type, getattr(type_, f_name, ...))
-            for f_name, f_type in type_.__annotations__.items()
-        }
-
         pyd_model = pydantic.create_model(
             pyd_model.__name__,
             __base__=(*self.input_bases, PostponedValidationMixin, pyd_model),
             __module__=pyd_model.__module__,
-            **fields_definition,
+            **self._field_definitions(type_),
         )
 
         pyd_model._type_definition = type_._type_definition
@@ -102,6 +128,8 @@ class PydanticSQLAMapper(StrawberrySQLAlchemyMapper):
         to_pydantic_model = self._to_pydantic_model
 
         def convert(type_: Any):
+            if not issubclass(type_, pydantic.BaseModel):
+                return super_fn(type_)
             # It's necessary to create a new type to
             # to prevent unwanted mutations from strawberry on the pydantic model
             type_copy = PydanticSQLAMapper._copy_type(type_)
