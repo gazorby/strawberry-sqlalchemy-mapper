@@ -52,7 +52,13 @@ class PostponedValidationMixin:
 class PydanticSQLAMapper(StrawberrySQLAlchemyMapper):
     """Convert generated strawberry input types to pydantic model."""
 
+    def __init__(self, *args, postponed_validation: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.postponed_evaluation = postponed_validation
+
     def _field_definitions(self, type_):
+        """Generate field definitions suitable to pass to pydantic.create_model()."""
+
         field_definitions: Dict[str, Any] = {}
 
         for field in dataclasses.fields(type_):
@@ -60,11 +66,15 @@ class PydanticSQLAMapper(StrawberrySQLAlchemyMapper):
             default_factory: Optional["NoArgAnyCallable"] = None
             field_info: FieldInfo
 
+            type_origin = getattr(field.type, "__origin__", None)
+            type_args = getattr(field.type, "__args__", [])
+
             if field.default is not dataclasses.MISSING:
                 default = field.default
             elif field.default_factory is not dataclasses.MISSING:
                 default_factory = field.default_factory
-            else:
+            # Check if field type is Optional
+            elif type_origin is not Union and None.__class__ not in type_args:
                 default = Required
 
             if isinstance(default, FieldInfo):
@@ -78,6 +88,7 @@ class PydanticSQLAMapper(StrawberrySQLAlchemyMapper):
                 type_.__annotations__[field.name],
                 field_info,
             )
+
         return field_definitions
 
     def _to_pydantic_model(
@@ -88,9 +99,14 @@ class PydanticSQLAMapper(StrawberrySQLAlchemyMapper):
     ) -> Type[pydantic.BaseModel]:
         """Create a pydantic model from a strawberry input type."""
 
+        if self.postponed_evaluation:
+            bases = (*self.input_bases, PostponedValidationMixin, pyd_model)
+        else:
+            bases = (*self.input_bases, pyd_model)
+
         pyd_model = pydantic.create_model(
             pyd_model.__name__,
-            __base__=(*self.input_bases, PostponedValidationMixin, pyd_model),
+            __base__=bases,
             __module__=pyd_model.__module__,
             **self._field_definitions(type_),
         )

@@ -1,59 +1,21 @@
 import strawberry
-from model import Model
-from sqlalchemy import Column, ForeignKey, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from models import create_employee_and_department_tables, create_employee_table
 
 from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyMapper
 
-gql_mapper = StrawberrySQLAlchemyMapper(
-    model_to_type_name=lambda name: f"{name.__name__}Type",
-)
-
-Base = declarative_base()
-
-
-class Parent(Base, Model):
-    __tablename__ = "parent"
-    id = Column("id", Integer, primary_key=True)
-    name = Column("name", String)
-    children = relationship("Child")
-
-
-class Child(Base, Model):
-    __tablename__ = "child"
-    id = Column("id", Integer, primary_key=True)
-    name = Column("name", String)
-    parent_id = Column(Integer, ForeignKey("parent.id"))
-
 
 def test_basic_create():
-    Base = declarative_base()
+    Employee = create_employee_table()
+    gql_mapper = StrawberrySQLAlchemyMapper(
+        model_to_type_name=lambda name: f"{name.__name__}Type",
+    )
 
-    class Parent(Base, Model):
-        __tablename__ = "parent"
-        id = Column("id", Integer, primary_key=True)
-        name = Column("name", String)
-
-    class Child(Base, Model):
-        __tablename__ = "child"
-        id = Column("id", Integer, primary_key=True)
-        name = Column("name", String)
-
-    @gql_mapper.type(Parent)
-    class ParentType:
+    @gql_mapper.type(Employee)
+    class EmployeeType:
         id: strawberry.ID
 
-    @gql_mapper.create_input(Parent)
-    class ParentCreate:
-        pass
-
-    @gql_mapper.type(Child)
-    class ChildType:
-        id: strawberry.ID
-
-    @gql_mapper.create_input(Child)
-    class ChildCreate:
+    @gql_mapper.create_input(Employee)
+    class EmployeeCreate:
         pass
 
     @strawberry.type
@@ -63,22 +25,22 @@ def test_basic_create():
     @strawberry.type
     class Mutation:
         @strawberry.field
-        def create_parent(input: ParentCreate) -> None:
-            assert input == ParentCreate(name="foo")
+        def create_employee(input: EmployeeCreate) -> None:
+            assert input == EmployeeCreate(name="foo")
 
     query = """
-        mutation createParent {
-            createParent(input: {name: "foo"})
+        mutation createEmployee {
+            createEmployee(input: {name: "foo"})
         }
     """
 
     expected_schema = """
-type Mutation {
-  createParent(input: ParentTypeCreateInput!): Void
+input EmployeeTypeCreateInput {
+  name: String!
 }
 
-input ParentTypeCreateInput {
-  name: String
+type Mutation {
+  createEmployee(input: EmployeeTypeCreateInput!): Void
 }
 
 type Query {
@@ -97,33 +59,26 @@ scalar Void
 
 
 def test_basic_update():
-    Base = declarative_base()
+    Employee = create_employee_table()
+    gql_mapper = StrawberrySQLAlchemyMapper(
+        model_to_type_name=lambda name: f"{name.__name__}Type",
+    )
 
-    class Parent(Base, Model):
-        __tablename__ = "parent"
-        id = Column("id", Integer, primary_key=True)
-        name = Column("name", String)
-
-    class Child(Base, Model):
-        __tablename__ = "child"
-        id = Column("id", Integer, primary_key=True)
-        name = Column("name", String)
-
-    @gql_mapper.type(Parent)
-    class ParentType:
+    @gql_mapper.type(Employee)
+    class EmployeeType:
         id: strawberry.ID
 
-    @gql_mapper.update_input(Parent)
-    class ParentUpdate:
+    @gql_mapper.update_input(Employee)
+    class EmployeeUpdate:
         pass
 
-    @gql_mapper.type(Child)
-    class ChildType:
-        id: strawberry.ID
+    # @gql_mapper.type(Basic2)
+    # class Basic2Type:
+    #     id: strawberry.ID
 
-    @gql_mapper.update_input(Child)
-    class ChildUpdate:
-        pass
+    # @gql_mapper.update_input(Basic2)
+    # class Basic2Update:
+    #     pass
 
     @strawberry.type
     class Query:
@@ -132,23 +87,23 @@ def test_basic_update():
     @strawberry.type
     class Mutation:
         @strawberry.field
-        def update_parent(input: ParentUpdate) -> None:
-            assert input == ParentUpdate(id="1", name="foo")
+        def update_employee(input: EmployeeUpdate) -> None:
+            assert input == EmployeeUpdate(id="1", name="foo")
 
     query = """
-        mutation updateParent {
-            updateParent(input: {id: 1, name: "foo"})
+        mutation updateEmployee {
+            updateEmployee(input: {id: 1, name: "foo"})
         }
     """
 
     expected_schema = """
-type Mutation {
-  updateParent(input: ParentTypeUpdateInput!): Void
-}
-
-input ParentTypeUpdateInput {
+input EmployeeTypeUpdateInput {
   id: ID!
   name: String = null
+}
+
+type Mutation {
+  updateEmployee(input: EmployeeTypeUpdateInput!): Void
 }
 
 type Query {
@@ -167,21 +122,26 @@ scalar Void
 
 
 def test_list_input():
-    @gql_mapper.type(Parent)
-    class ParentType:
+    Employee, Department = create_employee_and_department_tables()
+    gql_mapper = StrawberrySQLAlchemyMapper(
+        model_to_type_name=lambda name: f"{name.__name__}Type",
+    )
+
+    @gql_mapper.type(Department)
+    class DepartmentType:
         id: strawberry.ID
 
-        @gql_mapper.create_input(Parent)
+        @gql_mapper.create_input(Department)
         class Create:
             pass
 
-    @gql_mapper.type(Child)
-    class ChildType:
+    @gql_mapper.type(Employee)
+    class EmployeeType:
         id: strawberry.ID
 
-        @gql_mapper.create_input(Child)
+        @gql_mapper.create_input(Employee)
         class Create:
-            __exclude__ = ["parent_id"]
+            __exclude__ = ["department_id", "department"]
 
     # important to call finalize here
     gql_mapper.finalize()
@@ -193,19 +153,19 @@ def test_list_input():
     @strawberry.type
     class Mutation:
         @strawberry.field
-        def create_parent(input: ParentType.Create) -> None:
+        def create_department(input: DepartmentType.Create) -> None:
             assert input.name == "foo"
-            assert input.children == [
-                ChildType.Create(name="hello"),
-                ChildType.Create(name="world"),
+            assert input.employees == [
+                EmployeeType.Create(name="hello"),
+                EmployeeType.Create(name="world"),
             ]
 
     query = """
-        mutation createParent {
-            createParent(
+        mutation createDepartment {
+            createDepartment(
                 input: {
                     name: "foo",
-                    children: [
+                    employees: [
                         { name: "hello" },
                         { name: "world" }
                     ]
@@ -219,15 +179,21 @@ def test_list_input():
 
 
 def test_create_exclude():
-    # schema definition
-    @gql_mapper.type(Parent)
-    class ParentType:
-        id: strawberry.ID
-        __exclude__ = ["children"]
+    Employee, _ = create_employee_and_department_tables()
 
-    @gql_mapper.create_input(Parent)
-    class ParentCreate:
-        __exclude__ = ["children"]
+    gql_mapper = StrawberrySQLAlchemyMapper(
+        model_to_type_name=lambda name: f"{name.__name__}Type",
+    )
+
+    # schema definition
+    @gql_mapper.type(Employee)
+    class EmployeeType:
+        id: strawberry.ID
+        __exclude__ = ["department", "department_id"]
+
+    @gql_mapper.create_input(Employee)
+    class EmployeeCreate:
+        __exclude__ = ["department", "department_id"]
 
     @strawberry.type
     class Query:
@@ -236,12 +202,12 @@ def test_create_exclude():
     @strawberry.type
     class Mutation:
         @strawberry.field
-        def create_parent(input: ParentCreate) -> ParentType:
-            return ParentType(id=1, name=input.name)
+        def create_employee(input: EmployeeCreate) -> EmployeeType:
+            return EmployeeType(id=1, name=input.name)
 
     query = """
-        mutation createParent {
-            createParent(input: {name: "foo"}) {
+        mutation createEmployee {
+            createEmployee(input: {name: "foo"}) {
                 id
                 name
             }
@@ -249,17 +215,17 @@ def test_create_exclude():
     """
 
     expected_schema = """
-type Mutation {
-  createParent(input: ParentTypeCreateInput!): ParentType!
-}
-
-type ParentType {
+type EmployeeType {
   id: ID!
-  name: String
+  name: String!
 }
 
-input ParentTypeCreateInput {
-  name: String
+input EmployeeTypeCreateInput {
+  name: String!
+}
+
+type Mutation {
+  createEmployee(input: EmployeeTypeCreateInput!): EmployeeType!
 }
 
 type Query {
@@ -272,18 +238,23 @@ type Query {
     assert schema.as_str().strip() == expected_schema.strip()
     # Assert query result
     result = schema.execute_sync(query)
-    assert result.data == {"createParent": {"id": "1", "name": "foo"}}
+    assert result.data == {"createEmployee": {"id": "1", "name": "foo"}}
 
 
 def test_update_exclude():
-    @gql_mapper.type(Parent)
-    class ParentType:
+    gql_mapper = StrawberrySQLAlchemyMapper(
+        model_to_type_name=lambda name: f"{name.__name__}Type",
+    )
+    Employee = create_employee_table()
+
+    @gql_mapper.type(Employee)
+    class EmployeeType:
         id: strawberry.ID
 
         __exclude__ = ["children"]
 
-    @gql_mapper.update_input(Parent)
-    class ParentUpdate:
+    @gql_mapper.update_input(Employee)
+    class EmployeeUpdate:
         __exclude__ = ["children"]
 
     @strawberry.type
@@ -293,12 +264,12 @@ def test_update_exclude():
     @strawberry.type
     class Mutation:
         @strawberry.field
-        def update_parent(input: ParentUpdate) -> ParentType:
-            return ParentType(id=input.id, name=input.name)
+        def update_employee(input: EmployeeUpdate) -> EmployeeType:
+            return EmployeeType(id=input.id, name=input.name)
 
     query = """
-        mutation updateParent {
-            updateParent(input: {id: 1, name: "bar"}) {
+        mutation updateEmployee {
+            updateEmployee(input: {id: 1, name: "bar"}) {
                 id
                 name
             }
@@ -306,20 +277,20 @@ def test_update_exclude():
     """
 
     expected_schema = """
-type Mutation {
-  updateParent(input: ParentTypeUpdateInput!): ParentType!
-}
-
-type ParentType {
+type EmployeeType {
   id: ID!
-  name: String
+  name: String!
 }
 
-input ParentTypeUpdateInput {
+input EmployeeTypeUpdateInput {
   id: ID!
   name: String = null
 }
 
+type Mutation {
+  updateEmployee(input: EmployeeTypeUpdateInput!): EmployeeType!
+}
+
 type Query {
   hello: String!
 }
@@ -331,4 +302,4 @@ type Query {
     # Assert query result
     schema = strawberry.Schema(query=Query, mutation=Mutation)
     result = schema.execute_sync(query)
-    assert result.data == {"updateParent": {"id": "1", "name": "bar"}}
+    assert result.data == {"updateEmployee": {"id": "1", "name": "bar"}}

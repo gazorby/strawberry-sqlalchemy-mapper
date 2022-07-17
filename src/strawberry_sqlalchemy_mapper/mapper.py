@@ -216,10 +216,11 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
         self._related_type_models = set()
         self._related_interface_models = set()
 
-        if not isinstance(input_bases, tuple):
-            self.input_bases = (input_bases,)
-        elif input_bases is not None:
-            self.input_bases = input_bases
+        if input_bases is not None:
+            if not isinstance(input_bases, tuple):
+                self.input_bases = (input_bases,)
+            else:
+                self.input_bases = input_bases
         else:
             self.input_bases = ()
 

@@ -13,7 +13,7 @@ from typing import AsyncContextManager, AsyncGenerator, Callable
 
 import pytest
 import pytest_asyncio
-from model import Model
+from models import Model
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
 TxManager = Callable[[], AsyncContextManager[AsyncSession]]

@@ -1,45 +1,13 @@
 import enum
 from typing import List, Optional
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String
+from models import create_employee_and_department_tables, create_employee_table
+from sqlalchemy import Column, Enum, Integer, String
 from sqlalchemy.dialects.postgresql.array import ARRAY
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 from strawberry.type import StrawberryOptional
 
 from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyMapper
-
-
-def _create_employee_table():
-    # todo: use pytest fixtures
-    Base = declarative_base()
-
-    class Employee(Base):
-        __tablename__ = "employee"
-        id = Column(Integer, autoincrement=True, primary_key=True)
-        name = Column(String, nullable=False)
-
-    return Employee
-
-
-def _create_employee_and_department_tables():
-    # todo: use pytest fixtures
-    Base = declarative_base()
-
-    class Employee(Base):
-        __tablename__ = "employee"
-        id = Column(Integer, autoincrement=True, primary_key=True)
-        name = Column(String, nullable=False)
-        department_id = Column(Integer, ForeignKey("department.id"))
-        department = relationship("Department", back_populates="employees")
-
-    class Department(Base):
-        __tablename__ = "department"
-        id = Column(Integer, autoincrement=True, primary_key=True)
-        name = Column(String, nullable=False)
-        employees = relationship("Employee", back_populates="department")
-
-    return Employee, Department
 
 
 def _create_polymorphic_employee_table():
@@ -57,14 +25,14 @@ def _create_polymorphic_employee_table():
 
 
 def test_mapper_default_model_to_type_name():
-    Employee = _create_employee_table()
+    Employee = create_employee_table()
     assert (
         StrawberrySQLAlchemyMapper._default_model_to_type_name(Employee) == "Employee"
     )
 
 
 def test_default_model_to_interface_name():
-    Employee = _create_employee_table()
+    Employee = create_employee_table()
     assert (
         StrawberrySQLAlchemyMapper._default_model_to_interface_name(Employee)
         == "EmployeeInterface"
@@ -72,7 +40,7 @@ def test_default_model_to_interface_name():
 
 
 def test_model_is_interface_fails():
-    Employee = _create_employee_table()
+    Employee = create_employee_table()
     strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
     assert strawberry_sqlalchemy_mapper.model_is_interface(Employee) is False
 
@@ -175,7 +143,7 @@ def test_convert_enum_column_to_strawberry_type():
 
 def test_convert_relationship_to_strawberry_type():
     strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
-    _, Department = _create_employee_and_department_tables()
+    _, Department = create_employee_and_department_tables()
     employees_property = Department.employees.property
     assert (
         strawberry_sqlalchemy_mapper._convert_relationship_to_strawberry_type(
@@ -187,7 +155,7 @@ def test_convert_relationship_to_strawberry_type():
 
 def test_get_relationship_is_optional():
     strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
-    _, Department = _create_employee_and_department_tables()
+    _, Department = create_employee_and_department_tables()
     employees_property = Department.employees.property
     assert (
         strawberry_sqlalchemy_mapper._get_relationship_is_optional(employees_property)
@@ -212,7 +180,7 @@ def test_add_annotation():
 
 def test_connection_resolver_for():
     strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
-    _, Department = _create_employee_and_department_tables()
+    _, Department = create_employee_and_department_tables()
     employees_property = Department.employees.property
     assert (
         strawberry_sqlalchemy_mapper.connection_resolver_for(employees_property)
@@ -221,7 +189,7 @@ def test_connection_resolver_for():
 
 
 def test_type_simple():
-    Employee = _create_employee_table()
+    Employee = create_employee_table()
     strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
 
     @strawberry_sqlalchemy_mapper.type(Employee)
@@ -242,7 +210,7 @@ def test_type_simple():
 
 
 def test_type_relationships():
-    Employee, _ = _create_employee_and_department_tables()
+    Employee, _ = create_employee_and_department_tables()
     strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
 
     @strawberry_sqlalchemy_mapper.type(Employee)
