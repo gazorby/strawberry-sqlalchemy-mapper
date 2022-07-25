@@ -105,8 +105,7 @@ jobs:
         run: cibuildwheel --output-dir dist
         env:
           PIP: "pip"
-          CIBW_BUILD: "cp3${{ matrix.python-version }}-*"
-          CIBW_BEFORE_BUILD: "pip install -U Cython"
+          CIBW_BUILD: "pp3${{ matrix.python-version }}-*"
 
       - name: list dist files
         run: |
