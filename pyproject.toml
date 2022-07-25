@@ -1,14 +1,70 @@
-[build-system]
-# AVOID CHANGING REQUIRES: IT WILL BE UPDATED BY PYSCAFFOLD!
-requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.poetry]
+name = "strawberry-sqlalchemy-mapper"
+version = "0.1.0"
+description = "Automatically generate fields for strawberry types from SQLAlchemy models."
+authors = [
+    "Expedock Software, Inc <eng@expedock.com>",
+    "gazorby <gazorby@pm.me>",
+]
+maintainers = ["gazorby <gazorby@pm.me>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/gazorby/strawberry-sqlalchemy-mapper"
+documentation = "https://github.com/gazorby/strawberry-sqlalchemy-mapper"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+]
+keywords = ["graphql", "sqlalchemy", "pydantic", "model"]
 
-[tool.setuptools_scm]
-# For smarter version schemes and other configuration options,
-# check out https://github.com/pypa/setuptools_scm
-version_scheme = "no-guess-dev"
+[tool.poetry.dependencies]
+python = "^3.8"
+SQLAlchemy = { extras = ["asyncio"], version = "^1.4.39" }
+pydantic = ">=1.9.1"
+strawberry-graphql = ">=0.95"
+importlib-metadata = ">=4.11.1"
+sentinel = "^1.0.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+pytest-cov = "^3.0.0"
+hypothesis = "^6.52.4"
+aiosqlite = "^0.17.0"
+pytest-asyncio = "^0.19.0"
+pytest-emoji = "^0.2.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = "-s --emoji"
+asyncio_mode = "auto"
+testpaths = ["tests/"]
+norecursedirs = ["dist", "build"]
+
+[tool.pycln]
+all = true
+
+[tool.isort]
+src_paths = ["applembic", "tests"]
+profile = "black"
+indent = 4
+combine_star = true
+combine_as_imports = true
+lines_after_imports = 2
+known_pytest = ["pytest"]
+known_first_party = ["strawberry_sqlalchemy_mapper"]
+sections = [
+    "FUTURE",
+    "STDLIB",
+    "PYTEST",
+    "THIRDPARTY",
+    "FIRSTPARTY",
+    "LOCALFOLDER",
+]
 
 [tool.autopub]
 git-username = "gazorby"
 git-email = "gazorby@pm.me"
-project-name = "optimus-id"
+project-name = "aio-strawberry-sqlalchemy-mapper"
