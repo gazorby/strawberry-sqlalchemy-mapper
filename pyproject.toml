@@ -18,7 +18,7 @@ classifiers = [
 keywords = ["graphql", "sqlalchemy", "pydantic", "model"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.7"
 SQLAlchemy = { extras = ["asyncio"], version = "^1.4.39" }
 pydantic = ">=1.9.1"
 strawberry-graphql = ">=0.95"
