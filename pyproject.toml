@@ -11,4 +11,4 @@ version_scheme = "no-guess-dev"
 [tool.autopub]
 git-username = "gazorby"
 git-email = "gazorby@pm.me"
-project-name = "optimus-id"
+project-name = "aio-strawberry-sqlalchemy-mapper"
