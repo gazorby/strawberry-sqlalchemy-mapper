@@ -5,7 +5,7 @@ concurrency: release
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   release-file-check:
