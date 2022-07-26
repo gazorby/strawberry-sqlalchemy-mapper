@@ -66,20 +66,9 @@ jobs:
           autopub commit
 
   build:
-    name: build py3.${{ matrix.python-version }} on ${{ matrix.platform || matrix.os }}
+    name: build python wheel
     needs: bump
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu, macos, windows]
-        python-version: ["7", "8", "9", "10"]
-        include:
-          - os: ubuntu
-            platform: linux
-          - os: windows
-            ls: dir
-
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         # Needed to get last commits
@@ -93,23 +82,16 @@ jobs:
 
       - name: Install deps
         run: |
-          pip install -U cibuildwheel twine
+          pip install -U twine
 
-      - name: Build sdist
-        if: matrix.os == 'ubuntu' && matrix.python-version == '9'
+      - name: Build sdist and wheel
         run: |
           pip install poetry
-          poetry build --format sdist
-
-      - name: Build wheel
-        run: cibuildwheel --output-dir dist
-        env:
-          PIP: "pip"
-          CIBW_BUILD: "pp3${{ matrix.python-version }}-*"
+          poetry build
 
       - name: list dist files
         run: |
-          ${{ matrix.ls || 'ls -lh' }} dist/
+          ls -lh dist/
           twine check dist/*
 
       - name: Store wheel artifacts
