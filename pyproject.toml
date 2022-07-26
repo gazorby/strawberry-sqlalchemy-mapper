@@ -6,7 +6,7 @@ authors = [
     "Expedock Software, Inc <eng@expedock.com>",
     "gazorby <gazorby@pm.me>",
 ]
-packages = [{ include = "strawberry-sqlalchemy-mapper" }]
+packages = [{ include = "src/strawberry-sqlalchemy-mapper" }]
 maintainers = ["gazorby <gazorby@pm.me>"]
 license = "MIT"
 readme = "README.md"
