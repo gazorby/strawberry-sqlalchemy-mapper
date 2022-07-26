@@ -1,11 +1,12 @@
 [tool.poetry]
-name = "strawberry-sqlalchemy-mapper"
+name = "aio-strawberry-sqlalchemy-mapper"
 version = "0.3.0"
 description = "Automatically generate fields for strawberry types from SQLAlchemy models."
 authors = [
     "Expedock Software, Inc <eng@expedock.com>",
     "gazorby <gazorby@pm.me>",
 ]
+packages = [{ include = "strawberry-sqlalchemy-mapper" }]
 maintainers = ["gazorby <gazorby@pm.me>"]
 license = "MIT"
 readme = "README.md"
