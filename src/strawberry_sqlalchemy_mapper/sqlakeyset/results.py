@@ -1,9 +1,10 @@
 """Paging data structures and bookmark handling."""
 import base64
 import csv
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 from strawberry_sqlalchemy_mapper.sqlakeyset.serial import BadBookmark, Serial
+
 
 SERIALIZER_SETTINGS = {
     "lineterminator": "",
@@ -16,7 +17,7 @@ SERIALIZER_SETTINGS = {
 s = Serial(**SERIALIZER_SETTINGS)
 
 
-def serialize_bookmark(marker: tuple[tuple[Any], bool]) -> str:
+def serialize_bookmark(marker: Tuple[Tuple[Any], bool]) -> str:
     """
     Serialize the given bookmark.
 
@@ -35,7 +36,7 @@ def serialize_bookmark(marker: tuple[tuple[Any], bool]) -> str:
     return base64.b64encode(full_string.encode()).decode()
 
 
-def unserialize_bookmark(bookmark: Optional[str]) -> tuple[Optional[tuple[Any]], bool]:
+def unserialize_bookmark(bookmark: Optional[str]) -> Tuple[Optional[Tuple[Any]], bool]:
     """
     Deserialize a bookmark string to a place marker.
 

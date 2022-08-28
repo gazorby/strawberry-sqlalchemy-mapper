@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 import strawberry
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,7 +47,7 @@ class Edge:
 
 @strawberry.type
 class PageInfo:
-    """GraphQL Relay PageIngo type that gives information about the current page."""
+    """Gives information about the current page."""
 
     has_next_page: bool
     has_previous_page: bool
@@ -66,7 +66,7 @@ class Connection:
     This interface is part of the relay implementation.
     """
 
-    edges: list[Edge]
+    edges: List[Edge]
     page_info: PageInfo
 
 
@@ -266,7 +266,7 @@ async def page(selectable: Select, page_input: PageInput, session: AsyncSession)
 
 async def connection(
     selectable: Select, page_input: PageInput, connection: type[Connection], info: Info
-) -> tuple[list[Any], PageInfo]:
+) -> Tuple[List[Any], PageInfo]:
     """Get a connection object from a page input.
 
     >>> @strawberry.field
@@ -319,7 +319,7 @@ class ConnectionMixin:
             {
                 "__annotations__": {
                     "page_info": PageInfo,
-                    "edges": list[getattr(cls, "Edge")],
+                    "edges": List[getattr(cls, "Edge")],
                 },
                 "__module__": cls.__module__,
             },
