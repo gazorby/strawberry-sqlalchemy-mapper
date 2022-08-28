@@ -8,7 +8,7 @@ of the "sqlakeyset" library, see:
 We started by making the library compatible with `asyncio`
 and 2.0 SQLAlchemy style, and ended up only keeping the parts we need.
 """
-from typing import Any, Optional
+from typing import Any, List, Optional, Tuple
 
 from sqlalchemy import tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,16 +22,8 @@ from strawberry_sqlalchemy_mapper.sqlakeyset.results import Page, Paging
 from strawberry_sqlalchemy_mapper.sqlakeyset.serial import InvalidPage
 
 
-def get_db() -> AsyncSession:
-    # TODO: Integration is required here, to get the DB session.
-    # raise NotImplementedError
-    from drinn.db import session
-
-    return session
-
-
 def where_condition_for_page(
-    ordering_columns: list[OC], place: tuple[Any], session: AsyncSession
+    ordering_columns: List[OC], place: Tuple[Any], session: AsyncSession
 ):
     """
     Construct the SQL condition required to restrict a selectable to the desired page.
@@ -64,7 +56,7 @@ def where_condition_for_page(
 async def get_page(
     selectable,
     per_page: int,
-    place: Optional[tuple[Any]],
+    place: Optional[Tuple[Any]],
     backwards: bool,
     session: AsyncSession,
 ) -> Page:

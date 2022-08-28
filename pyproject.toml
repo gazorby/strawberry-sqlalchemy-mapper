@@ -3,7 +3,7 @@ name = "aio-strawberry-sqlalchemy-mapper"
 version = "0.5.2"
 description = "Automatically generate fields for strawberry types from SQLAlchemy models."
 authors = [
-    "Expedock Software, Inc <eng@expedock.com>",
+    "Expedock Software, Inc <rui@expedock.com>",
     "gazorby <gazorby@pm.me>",
 ]
 packages = [{ include = "strawberry_sqlalchemy_mapper", from = "src" }]
@@ -13,8 +13,9 @@ readme = "README.md"
 repository = "https://github.com/gazorby/strawberry-sqlalchemy-mapper"
 documentation = "https://github.com/gazorby/strawberry-sqlalchemy-mapper"
 classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
     "Development Status :: 4 - Beta",
-    "Programming Language :: Python",
 ]
 keywords = ["graphql", "sqlalchemy", "pydantic", "model"]
 
@@ -64,6 +65,7 @@ sections = [
     "FIRSTPARTY",
     "LOCALFOLDER",
 ]
+
 
 [tool.autopub]
 git-username = "gazorby"
