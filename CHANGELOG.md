@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+0.6.0 - 2022-08-29
+------------------
+
+- Support for python 3.8
+- Remove old build system configuration
+
 0.5.2 - 2022-08-25
 ------------------
 
