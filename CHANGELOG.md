@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.8.0 - 2022-09-12
+------------------
+
+- Fix arguments ordering on generated input types
+
 0.7.0 - 2022-09-12
 ------------------
 
