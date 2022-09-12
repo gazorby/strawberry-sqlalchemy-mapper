@@ -1,8 +1,8 @@
 import enum
 from typing import List, Optional
-
+import datetime
 from models import create_employee_and_department_tables, create_employee_table
-from sqlalchemy import Column, Enum, Integer, String
+from sqlalchemy import Column, Enum, Integer, String, Interval
 from sqlalchemy.dialects.postgresql.array import ARRAY
 from sqlalchemy.ext.declarative import declarative_base
 from strawberry.type import StrawberryOptional
@@ -228,3 +228,21 @@ def test_type_relationships():
     assert type(name.type) == StrawberryOptional
     id = list(filter(lambda f: f.name == "department", employee_type_fields))[0]
     assert type(id.type) == StrawberryOptional
+
+
+def test_override_annotation():
+    Base = declarative_base()
+    strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
+
+    class A(Base):
+        __tablename__ = "a"
+        id = Column(Integer, autoincrement=True, primary_key=True)
+        interval = Column(Interval)
+
+    @strawberry_sqlalchemy_mapper.type(A)
+    class AType:
+        interval: datetime.timedelta
+
+    atype_fields = AType._type_definition._fields
+    interval = list(filter(lambda f: f.name == "interval", atype_fields))[0]
+    assert interval.type == datetime.timedelta

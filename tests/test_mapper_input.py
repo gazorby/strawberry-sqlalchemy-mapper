@@ -216,8 +216,8 @@ def test_create_exclude():
 
     expected_schema = """
 type EmployeeType {
-  id: ID!
   name: String!
+  id: ID!
 }
 
 input EmployeeTypeCreateInput {
@@ -278,8 +278,8 @@ def test_optional_exclude():
 
     expected_schema = """
 type EmployeeType {
-  id: ID!
   name: String!
+  id: ID!
 }
 
 input EmployeeTypeUpdateInput {
