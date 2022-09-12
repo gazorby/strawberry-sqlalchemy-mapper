@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.7.0 - 2022-09-12
+------------------
+
+- Fields types can be set explictly with class annotation
+
 0.6.0 - 2022-08-29
 ------------------
 
