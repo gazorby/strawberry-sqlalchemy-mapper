@@ -867,6 +867,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                     old_annotations
                 )
 
+            default_args = []
             for key, relationship in mapper.relationships.items():
                 relationship: RelationshipProperty  # type: ignore
                 if (
@@ -879,21 +880,29 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                 relationship_input = self._convert_relationship_to_input_type(
                     relationship, optional
                 )
-                if key not in excluded_keys:
+                if relationship.uselist:
+                    default_args.append((type_, key, strawberry.field(default_factory=list), relationship_input))
+                    continue
+                elif optional:
+                    default_args.append((type_, key, None, relationship_input))
+                    continue
+                elif key not in excluded_keys:
                     self._add_annotation(
                         type_,
                         key,
                         relationship_input,
                         generated_field_keys,
                     )
-                    if relationship.uselist:
-                        setattr(
-                            type_,
-                            key,
-                            strawberry.field(default_factory=list),
-                        )
-                    elif optional:
-                        setattr(type_, key, None)
+
+            # Default arguments last
+            for t, key, val, relationship_input in default_args:
+                self._add_annotation(
+                    type_,
+                    key,
+                    relationship_input,
+                    generated_field_keys,
+                )
+                setattr(t, key, val)
 
             type_.__annotations__.update(old_annotations)
 
