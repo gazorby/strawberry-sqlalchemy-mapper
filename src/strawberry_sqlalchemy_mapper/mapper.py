@@ -638,6 +638,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
         type_: Any,
         excluded_keys: Iterable[str],
         generated_field_keys: List[str],
+        override_annotations: dict,
         all_optional: bool = False,
     ) -> None:
         """
@@ -649,6 +650,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                 key in excluded_keys
                 or key in type_.__annotations__
                 or hasattr(type_, key)
+                or key in override_annotations
             ):
                 continue
             type_annotation = self._convert_column_to_strawberry_type(column)
@@ -713,7 +715,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                     setattr(type_, key, strawberry.field(resolver=val))
                     generated_field_keys.append(key)
 
-            self._handle_columns(mapper, type_, excluded_keys, generated_field_keys)
+            self._handle_columns(mapper, type_, excluded_keys, generated_field_keys, old_annotations)
 
             for key, relationship in mapper.relationships.items():
                 relationship: RelationshipProperty  # type: ignore
@@ -847,6 +849,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                     type_,
                     excluded_keys,
                     generated_field_keys,
+                    old_annotations,
                     all_optional=True,
                 )
                 # Set none defaults for all fields on update class
@@ -861,6 +864,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                     type_,
                     excluded_keys,
                     generated_field_keys,
+                    old_annotations
                 )
 
             for key, relationship in mapper.relationships.items():
