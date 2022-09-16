@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.8.1 - 2022-09-16
+------------------
+
+- Fix creating objects with nested one to one relations
+
 0.8.0 - 2022-09-12
 ------------------
 
