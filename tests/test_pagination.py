@@ -6,10 +6,10 @@ import strawberry
 from conftest import Model, TxManager
 from hypothesis import given
 from hypothesis import strategies as st
-from sqlalchemy import Column, ForeignKey, Integer, desc, select
+from sqlalchemy import Column, ForeignKey, Integer, desc, select, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship, selectinload
-
+from models import create_employee_and_department_tables
 from strawberry_sqlalchemy_mapper import (
     StrawberrySQLAlchemyLoader,
     StrawberrySQLAlchemyMapper,
@@ -44,12 +44,15 @@ def session_context(session: AsyncSession) -> Dict[str, Any]:
 
 class Parent(Model):
     id = Column("id", Integer, primary_key=True)
+    name = Column(String(255))
     children = relationship("Child")
 
 
 class Child(Model):
     id = Column("id", Integer, primary_key=True)
+    name = Column(String(255))
     parent_id = Column(Integer, ForeignKey("parent.id"))
+    parent = relationship("Parent", back_populates="children")
 
 
 @gql_mapper.type(Parent)
@@ -74,7 +77,7 @@ class ChildType(Node):
 
 @gql_mapper.input(Child)
 class ChildCreate:
-    __exclude__ = ["id"]
+    __exclude__ = ["id", "parent_id"]
 
 
 @gql_mapper.input(Child, optional=True)
@@ -294,3 +297,51 @@ async def test_nested_pagination(
                 [int(c["node"]["id"]) for c in p["node"]["children"]["edges"]],
                 sub_page_input,
             )
+
+
+# TODO: Move this test
+# It does not test pagination but need top level defined schema (Parent/Child)
+async def test_loaded_state(transaction: TxManager):
+    @strawberry.type
+    class Mutation:
+        @strawberry.field
+        async def create_child_and_parent(input: ChildCreate) -> ChildType:
+            child = Child(
+                id=1,
+                name=input.name,
+                parent=Parent(
+                    id=1,
+                    name=input.parent.name
+                )
+            )
+            async with transaction() as session:
+                session.add(child)
+                # parent will be in loaded state
+                return await session.get(Child, 1)
+
+
+    query = """
+        mutation createParentAndChild {
+            createChildAndParent(input: {name: "child", parent: { name: "parent" }}) {
+                id
+                name
+                parent {
+                    id
+                    name
+                }
+            }
+        }
+    """
+
+    schema = strawberry.Schema(query=Query, mutation=Mutation)
+    result = await schema.execute(query)
+
+    assert result.errors is None
+    assert result.data["createChildAndParent"] == {
+        "id": "1",
+        "name": "child",
+        "parent": {
+            "id": "1",
+            "name": "parent"
+        }
+    }
