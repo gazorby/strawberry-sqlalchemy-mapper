@@ -494,20 +494,23 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
             instance_state = cast(InstanceState, inspect(self))
             if relationship.key not in instance_state.unloaded:
                 objects = getattr(self, relationship.key)
-                related_objects = PagingList([obj for obj in objects])
+                if relationship.uselist:
+                    related_objects = PagingList([obj for obj in objects])
 
-                if page_input is not None:
-                    related_objects = related_objects.page(page_input)
+                    if page_input is not None:
+                        related_objects = related_objects.page(page_input)
 
-                elif related_objects:
-                    related_objects.set_page_info(
-                        PageInfo(
-                            False,
-                            False,
-                            cursor_from_obj(objects[0]),
-                            cursor_from_obj(objects[-1]),
+                    elif related_objects:
+                        related_objects.set_page_info(
+                            PageInfo(
+                                False,
+                                False,
+                                cursor_from_obj(objects[0]),
+                                cursor_from_obj(objects[-1]),
+                            )
                         )
-                    )
+                else:
+                    related_objects = objects
                     # related_objects[0].page_info = page_info
 
             else:
