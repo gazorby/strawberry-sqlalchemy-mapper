@@ -82,6 +82,7 @@ from strawberry_sqlalchemy_mapper.relay import (
     cursor_from_obj,
 )
 
+
 Default = TypeVar("Default")
 
 BaseModelType = TypeVar("BaseModelType")
@@ -239,6 +240,14 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
     @staticmethod
     def _default_model_to_interface_name(model: Type[BaseModelType]) -> str:
         return f"{model.__name__}Interface"
+
+    @staticmethod
+    def sort_default_args(annotations: Dict[str, Any], type_: Any) -> Dict[str, Any]:
+        non_defaults, defaults = annotations.copy(), {}
+        for name in annotations:
+            if hasattr(type_, name):
+                defaults[name] = non_defaults.pop(name)
+        return {**non_defaults, **defaults}
 
     def model_is_interface(self, model: Type[BaseModelType]) -> bool:
         """
@@ -718,7 +727,9 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                     setattr(type_, key, strawberry.field(resolver=val))
                     generated_field_keys.append(key)
 
-            self._handle_columns(mapper, type_, excluded_keys, generated_field_keys, old_annotations)
+            self._handle_columns(
+                mapper, type_, excluded_keys, generated_field_keys, old_annotations
+            )
 
             for key, relationship in mapper.relationships.items():
                 relationship: RelationshipProperty  # type: ignore
@@ -799,6 +810,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
             # which will cause the mapped fields to fail
             # (because they may not have default values)
             type_.__annotations__.update(old_annotations)
+            type_.__annotations__ = self.sort_default_args(type_.__annotations__, type_)
 
             if make_interface:
                 mapped_type = strawberry.interface(type_)
@@ -845,32 +857,21 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
 
             type_.__name__ = input_name
 
+            self._handle_columns(
+                mapper,
+                type_,
+                excluded_keys,
+                generated_field_keys,
+                old_annotations,
+                all_optional=optional,
+            )
+
             if optional:
-                # Update input
-                self._handle_columns(
-                    mapper,
-                    type_,
-                    excluded_keys,
-                    generated_field_keys,
-                    old_annotations,
-                    all_optional=True,
-                )
                 # Set none defaults for all fields on update class
                 for f in generated_field_keys:
                     if f not in pk_field:
                         setattr(type_, f, None)
 
-            else:
-                # Create input
-                self._handle_columns(
-                    mapper,
-                    type_,
-                    excluded_keys,
-                    generated_field_keys,
-                    old_annotations
-                )
-
-            default_args = []
             for key, relationship in mapper.relationships.items():
                 relationship: RelationshipProperty  # type: ignore
                 if (
@@ -883,35 +884,24 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                 relationship_input = self._convert_relationship_to_input_type(
                     relationship, optional
                 )
-                if relationship.uselist:
-                    default_args.append((type_, key, strawberry.field(default_factory=list), relationship_input))
-                    continue
-                elif optional:
-                    default_args.append((type_, key, None, relationship_input))
-                    continue
-                elif key not in excluded_keys:
-                    self._add_annotation(
-                        type_,
-                        key,
-                        relationship_input,
-                        generated_field_keys,
-                    )
-
-            # Default arguments last
-            for t, key, val, relationship_input in default_args:
                 self._add_annotation(
                     type_,
                     key,
                     relationship_input,
                     generated_field_keys,
                 )
-                setattr(t, key, val)
+                if relationship.uselist:
+                    setattr(type_, key, strawberry.field(default_factory=list))
+                elif optional:
+                    setattr(type_, key, None)
 
             type_.__annotations__.update(old_annotations)
 
             # Cast pk field to strawberry ID
             if optional:
                 type_.__annotations__.update({pk: strawberry.ID for pk in pk_field})
+
+            type_.__annotations__ = self.sort_default_args(type_.__annotations__, type_)
 
             mapped_input = strawberry.input(type_)
 

@@ -1,13 +1,14 @@
+import datetime
 import enum
 from typing import List, Optional
-import datetime
-from models import create_employee_and_department_tables, create_employee_table
-from sqlalchemy import Column, Enum, Integer, String, Interval, ForeignKey
-from sqlalchemy.orm import relationship
+
+from sqlalchemy import Column, Enum, ForeignKey, Integer, Interval, String
 from sqlalchemy.dialects.postgresql.array import ARRAY
 from sqlalchemy.ext.declarative import declarative_base
-from strawberry.type import StrawberryOptional, StrawberryList
+from sqlalchemy.orm import relationship
+from strawberry.type import StrawberryList, StrawberryOptional
 
+from models import create_employee_and_department_tables, create_employee_table
 from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyMapper
 
 
@@ -263,10 +264,7 @@ def test_default_arguments_last_input():
         id = Column(Integer, primary_key=True)
         user_id = Column(Integer, ForeignKey("user.id"))
         parent_id = Column(Integer, ForeignKey("parent.id"))
-
-        # default argument
         parent = relationship("Parent", back_populates="children")
-        # non-default argument
         user = relationship("User")
 
     class Parent(Base):
@@ -274,7 +272,9 @@ def test_default_arguments_last_input():
         id = Column(Integer, primary_key=True)
         user_id = Column(Integer, ForeignKey("user.id"))
 
+        # default argument
         children = relationship("Child", back_populates="parent")
+        # non-default argument
         user = relationship("User")
 
     @strawberry_sqlalchemy_mapper.input(User)
@@ -288,6 +288,60 @@ def test_default_arguments_last_input():
     @strawberry_sqlalchemy_mapper.input(Parent)
     class ParentCreate:
         pass
+
+    strawberry_sqlalchemy_mapper.finalize()
+
+    parent_fields = ParentCreate._type_definition._fields
+    children = list(filter(lambda f: f.name == "children", parent_fields))[0]
+    user = list(filter(lambda f: f.name == "user", parent_fields))[0]
+
+    assert type(children.type) == StrawberryOptional
+    assert type(children.type.of_type) == StrawberryList
+    assert children.type.of_type.of_type == ChildCreate
+
+    assert type(user.type) == StrawberryOptional
+    assert user.type.of_type == UserCreate
+
+
+def test_defined_non_defaults_following_defaults():
+    Base = declarative_base()
+    strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
+
+    class User(Base):
+        __tablename__ = "user"
+        id = Column(Integer, primary_key=True)
+        name = Column(String)
+
+    class Child(Base):
+        __tablename__ = "child"
+        id = Column(Integer, primary_key=True)
+        user_id = Column(Integer, ForeignKey("user.id"))
+        parent_id = Column(Integer, ForeignKey("parent.id"))
+        parent = relationship("Parent", back_populates="children")
+        user = relationship("User")
+        # default argument
+        parent = relationship("Parent", back_populates="children")
+
+    class Parent(Base):
+        __tablename__ = "parent"
+        id = Column(Integer, primary_key=True)
+        user_id = Column(Integer, ForeignKey("user.id"))
+
+        user = relationship("User")
+        children = relationship("Child", back_populates="parent")
+
+    @strawberry_sqlalchemy_mapper.input(User)
+    class UserCreate:
+        pass
+
+    @strawberry_sqlalchemy_mapper.input(Child)
+    class ChildCreate:
+        # non default explicit
+        non_default: int
+
+    @strawberry_sqlalchemy_mapper.input(Parent)
+    class ParentCreate:
+        non_default: int
 
     strawberry_sqlalchemy_mapper.finalize()
 
